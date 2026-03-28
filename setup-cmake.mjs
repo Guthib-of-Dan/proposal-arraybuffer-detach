@@ -6,7 +6,7 @@ var gypDir = json.config.node_gyp_devdir;
 var nodeVersion = '/' + process.version.substring(1) + '/'
 var paths = {
   NODE_INCLUDE: gypDir + nodeVersion + "include/node",
-  NAPI_INCLUDE: "node-addon-api" in json.dependencies || "node-addon-api" in json.devDependencies
+  NAPI_INCLUDE: "node-addon-api" in (json.dependencies||{}) || "node-addon-api" in (json.devDependencies||{})
     ? "node_modules/node-addon-api"
     : "",
   NODE_LIB: process.platform === "win32"
