@@ -41,6 +41,14 @@ yarn.lock
 package-lock.json
 npm-shrinkwrap.json
 pnpm-lock.yaml
+bun.lock
 
 # Build directory
 build
+
+# This repo benchmarks
+.cache
+cxx/build
+node_modules
+cxx_modules
+paths.cmake

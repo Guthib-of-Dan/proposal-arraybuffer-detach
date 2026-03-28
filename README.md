@@ -1,3 +1,4 @@
+> README is in progress. Waiting for Guthib-of-Dan/proposal-json-parse-binary
 # template-for-proposals
 
 A repository template for ECMAScript proposals.
