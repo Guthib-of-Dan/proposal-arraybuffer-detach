@@ -151,8 +151,11 @@ server.on('request', async (req, res) => {
   for await (const chunk of req) chunks.push(chunk);
   const body = Buffer.concat(chunks);
 
+  // chunks contributed their data to body — release them immediately
+  for (const chunk of chunks) chunk.buffer.detach();
+
   const parseResult = JSON.parseBinary(body);
-  body.buffer.detach(); // released immediately — backing store freed at OS level
+  body.buffer.detach(); // body itself released after parse
 
   if (!parseResult.ok) {
     res.writeHead(400).end(parseResult.message);
