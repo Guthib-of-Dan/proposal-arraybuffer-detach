@@ -220,6 +220,10 @@ the developer explicit control over when memory is released.
 
 ## Q&A
 
+**what about edge cases like unsafe usage after detaching?**
+I needn't describe them here, as they are the same as of .transfer
+https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/ArrayBuffer/transfer
+
 **Why not overload `transfer()`?**
 `.transfer(0)` already exists and already allocates a zero-length `ArrayBuffer`.
 Changing its behavior would be a breaking change. `.detach()` is a separate
