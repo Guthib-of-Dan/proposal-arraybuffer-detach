@@ -41,7 +41,7 @@ moment — peak traffic.
 ### No JS API for immediate release
 
 C++ embedders like [uWebSockets.js](https://github.com/uNetworking/uWebSockets.js)
-already call `napi_detach_arraybuffer` automatically after the request callback
+already call `v8::ArrayBuffer::Detach` automatically after the request callback
 returns — freeing the backing store immediately at the OS level. JavaScript has
 no equivalent. The closest available option is:
 
@@ -53,10 +53,11 @@ This detaches the buffer but allocates an unnecessary zero-length `ArrayBuffer`
 object in the process — adding GC pressure on top of the problem it solves.
 
 ---
-
-Results of [GC pressure benchmark](./demo/gc-pressure) for 2000 iterations of
-50 MB buffers under a Docker 300 MB memory limit:
-
+[GC pressure benchmark](./demo/gc-pressure) is run in "Docker" with hard limited RAM for 300 mebabytes and no memory swap.  
+It allocates new ArrayBuffer with 50MB size, initializes it (that memory is memory mapped by default),  
+and compares the Garbage Collector's involvement when I clear that memory with transfer(0) in a loop and when I don't.
+It illustrates that V8 engine lets buffers pile up and when memory usage reaches its top values (Docker makes it happen),  
+GC slows the whole process.
 ```
 ✔ detach()      RSS +0.5 MB   GC time    0.3 ms   GC events    1  (Scavenge)
 ~ transfer(0)   RSS +0.5 MB   GC time    3.0 ms   GC events    1  (IncrementalMarking)
@@ -96,7 +97,7 @@ that frees the backing store at the OS level without allocating an intermediate
 zero-length `ArrayBuffer`.
 
 Semantically equivalent to `.transfer(0)` but without the wasteful allocation.
-Symmetric with `napi_detach_arraybuffer` already available to C++ embedders.
+Symmetric with `napi_detach_arraybuffer` or `v8::ArrayBuffer::Detach` already available to C++ embedders.
 
 ### TypeScript declaration
 
@@ -114,10 +115,11 @@ interface ArrayBuffer {
 ### Polyfill
 
 ```js
+// nodejs specific "napi_detach_arraybuffer" api
 import { setFlagsFromString } from 'node:v8'
 setFlagsFromString('--allow-natives-syntax')
 ArrayBuffer.prototype.detach = new Function('%ArrayBufferDetach(this)')
-// or:
+// or cross-platform option:
 ArrayBuffer.prototype.detach = function() { this.transfer(0) }
 ```
 
@@ -167,7 +169,7 @@ server.on('request', async (req, res) => {
 
 ### uWebSockets.js — manual detach within handler
 
-uWS already calls `napi_detach_arraybuffer` automatically after the callback
+uWS already calls `v8::ArrayBuffer::Detach` automatically after the callback
 returns. `ArrayBuffer.prototype.detach()` enables calling it **from within**
 the handler — before the callback returns — which is measurably faster due to
 the buffer being hot in V8's inline cache at that point.
@@ -175,6 +177,7 @@ the buffer being hot in V8's inline cache at that point.
 Results of [C++ addon benchmark](./demo/cxx) for 2M iterations on a 10 KB
 static buffer:
 
+> var internalDetach = new Function("buf", "%ArrayBufferDetach(buf)")
 ```
 V8 API
   C++ detach via JS call      7.768 s   ⚑ 6.7% faster than C++ auto-detach
@@ -194,9 +197,18 @@ hot in V8's inline cache and register state when called from within the
 callback frame. After the callback returns, V8 tears down that frame and the
 handle becomes cold — paying an extra lookup on every request.
 
-This means `ArrayBuffer.prototype.detach()` called from within a uWS handler
-would be faster than uWS's current auto-detach behavior, in addition to giving
+This means `ArrayBuffer.prototype.detach()` called from within uWebSockets.js HTTP/WebSocket handler
+would be faster than C++ embedders' auto-detach behavior, in addition to giving
 the developer explicit control over when memory is released.
+
+The only problem that this idea stumbled upon is that nobody comes to JS  
+to manage memory. That's why it is specifically targeted at 
+networking libraries that can take responsibility, thoroughly test 
+their technologies and improve performance without exposing
+raw behaviour to developers.
+
+But manual management can still be exposed and used.
+At least I will be the one who uses it - benchmarks prove its benefit.
 
 ## Comparison
 
@@ -206,7 +218,7 @@ the developer explicit control over when memory is released.
 | Returns new ArrayBuffer | ✔ (zero-length) | — |
 | Allocates intermediate object | ✔ | — |
 | GC event triggered | IncrementalMarking | Scavenge |
-| Symmetric with `napi_detach_arraybuffer` | — | ✔ |
+| Symmetric with `napi_detach_arraybuffer` or `v8::ArrayBuffer::Detach` | — | ✔ |
 
 ## Relation to other proposals
 
@@ -221,7 +233,7 @@ the developer explicit control over when memory is released.
 ## Q&A
 
 **what about edge cases like unsafe usage after detaching?**
-I needn't describe them here, as they are the same as of .transfer
+They are the same as of .transfer()
 https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/ArrayBuffer/transfer
 
 **Why not overload `transfer()`?**
