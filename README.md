@@ -6,6 +6,9 @@ Author: Daniel Dyryl \<diril656@gmail.com\>
 
 Stage: 0
 
+## Have no time to read?
+[Look at the overview.md](./overview.md)
+
 ## Problem
 
 Every JSON parsing operation in a JavaScript HTTP server follows this pipeline:
