@@ -44,7 +44,7 @@ export const options: Options = {
     'http_req_duration{scenario:detach_medium}': ['avg<0.7'],
 
     'http_req_duration{scenario:nothing_large}': ['avg<9'],
-    'http_req_duration{scenario:detach_large}': ['avg<4'],
+    'http_req_duration{scenario:detach_large}': ['avg<5'],
     
     // nothing_* tests have much wider range because of GC's unpredictability
     

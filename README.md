@@ -189,7 +189,7 @@ server.on('request', async (req, res) => {
 });
 ```
 
-#### [Benchmark](./demo/node:http/server.mjs)
+#### [Benchmark](./demo/node_http/server.mjs)
 Results are provided by Grafana K6 load test
 
 2 endpoints ("detach" and "nothing" with GC doing main work)

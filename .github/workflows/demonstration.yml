@@ -29,6 +29,6 @@ jobs:
       - name: GC pressure under memory-constrained environment
         run: bun run gc-pressure:start
       - name: node:http server load test comparison
-        run: chmod +x ./demo/node:http/run.sh && bun run node:http
+        run: chmod +x ./demo/node_http/run.sh && bun run node:http
       - name: C++ addon — detach method comparison (V8 API vs NAPI)
         run: bun run cxx:start
