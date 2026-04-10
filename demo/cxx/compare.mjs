@@ -1,7 +1,7 @@
 // cxx/compare.mjs
 import { createRequire } from "node:module"
 import { setFlagsFromString } from "node:v8"
-import { section, divider, renderBar, bold, dim, yellow } from "../helpers.mjs"
+import { section, divider, renderBar, bold, dim, yellow, BoxWidth } from "../helpers.mjs"
 const require = createRequire(import.meta.url)
 const v8   = require("./build/v8.node")
 const napi = require("./build/napi.node")
@@ -84,7 +84,7 @@ const napiNoDetach = time(() => napi.loopManualDetach());
 
 function renderCXXSection(apiName, rows, noDetachMs) {
   console.log(`\n  ${bold(apiName)}`);
-  console.log(dim('  ' + '─'.repeat(W - 2)));
+  console.log(dim('  ' + '─'.repeat(BoxWidth - 2)));
 
   const detachRows  = rows.filter(r => !r.isNoDetach && !r.isWarmup);
   const avgDetachMs = detachRows.reduce((a, b) => a + b.ms, 0) / (detachRows.length || 1);

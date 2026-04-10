@@ -3,7 +3,7 @@
 // All formatting lives here. Benchmark files import { render*, section, note }
 // and never call console.log themselves for result output.
 
-const W = 68; // total box width
+export const BoxWidth = 68; // total box width
 
 // ─── primitives ────────────────────────────────────────────────────────────
 
@@ -14,7 +14,7 @@ export function lpad(str, len) {
   return String(str).padStart(len);
 }
 export function line(char = '─') {
-  return char.repeat(W);
+  return char.repeat(BoxWidth);
 }
 
 // ANSI — gracefully disabled if not a TTY
@@ -58,8 +58,8 @@ export function section(title, sub = '') {
 //   badge  — optional right-side note string
 //   good   — true=green bar, false=red bar, undefined=gray
 
-const BAR_W   = 28;  // characters wide
-const LABEL_W = 26;
+export const BAR_W   = 28;  // characters wide
+export const LABEL_W = 26;
 
 export function renderBar({ label, value, max, unit = 'ms', badge = '', good }) {
   const frac   = Math.min(value / max, 1);
@@ -96,5 +96,5 @@ export function note(text) {
 }
 
 export function divider() {
-  console.log(dim('  ' + '·'.repeat(W - 2)));
+  console.log(dim('  ' + '·'.repeat(BoxWidth - 2)));
 }

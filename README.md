@@ -126,6 +126,12 @@ ArrayBuffer.prototype.detach = new Function('%ArrayBufferDetach(this)')
 ArrayBuffer.prototype.detach = function() { this.transfer(0) }
 ```
 
+### node:buffer limitation
+
+`Buffer.allocUnsafe` and `Buffer.concat` may use internal preallocated slab, which means that such buffer can't be detached. Due to Buffer not exposing any "belongsToPool(): boolean" methods, using `Buffer.allocUnsafe` or `Buffer.concat` should be discouraged when used with ArrayBuffer.prototype.detach. 
+
+Even though optimisation doesn't get applied to allocations exceeding `Buffer.poolSize`, using `Buffer.allocUnsafe` for such sizes does not differ in any way from `Buffer.allocUnsafeSlow`, which is more explicit and preferred.
+
 ## What changes
 
 ### node:http 
@@ -134,7 +140,7 @@ ArrayBuffer.prototype.detach = function() { this.transfer(0) }
 ```javascript
 server.on('request', async (req, res) => {
 
-  const chunks = [];
+  var chunks = [];
 
   // faster than "for await(var chunk of req) ..."
   await new Promise((resolve) => {
@@ -143,7 +149,10 @@ server.on('request', async (req, res) => {
     })
     req.once("end", resolve)
   })
-  const body = Buffer.concat(chunks)
+  var body = Buffer.concat(chunks)
+
+  // mark them for GC
+  chunks = undefined; 
 
   let result;
   try {
@@ -152,15 +161,15 @@ server.on('request', async (req, res) => {
     res.writeHead(400).end(err.message);
     return;
   }
+  // mark for GC
+  body = undefined;
+
   // body sits in memory until GC decides to collect it
   handleResult(result);
 });
 ```
 
 #### After
-! `Buffer.allocUnsafe` and `Buffer.concat` may use internal preallocated slab, which means that such buffer can't be detached. Due to Buffer not exposing any "belongsToPool(): boolean" methods, using `Buffer.allocUnsafe` or `Buffer.concat` should be discouraged when used with ArrayBuffer.prototype.detach. 
-
-Even though optimisation doesn't get applied to allocations exceeding `Buffer.poolSize`, using `Buffer.allocUnsafe` for such sizes does not differ in any way from `Buffer.allocUnsafeSlow`, which is more explicit and preferred.
 ```javascript
 server.on('request', async (req, res) => {
   // memory-mapped buffer, doesn't consume whole memory when initialised.
@@ -193,11 +202,23 @@ server.on('request', async (req, res) => {
 Results are provided by Grafana K6 load test
 
 2 endpoints ("detach" and "nothing" with GC doing main work)
-"tiny" body - 1byte, "medium" - 1MB, "large" - 10MB
+
+Duration - 10 seconds for each case.
+
+Bodies
+| tiny | medium | large |
+|------|--------|-------|
+|1 byte|  1 MB  | 10 MB |
+
+> 1 byte payload is incredibly rare to be encountered, however here it demonstrates that it
+> does not accumulate enough for GC to be triggered, so data is not cleared at all.
+> In the meantime, we constantly "detach" buffers on the second endpoint, be it 1 byte or more.
+> For 1 byte case we clear data each request manually, while on the previous endpoint GC stays silent, hence more work and slower execution.
+
 
 ```
 http_reqs.......................
-      { scenario:nothing_tiny }.....: 51463  857.670217/s
+      { scenario:nothing_tiny }.....: 51463  857.670217/s 
       { scenario:detach_tiny }......: 50986  849.720647/s
 
       { scenario:nothing_medium }...: 10382  173.023963/s
