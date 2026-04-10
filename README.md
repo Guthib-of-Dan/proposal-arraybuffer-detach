@@ -322,6 +322,9 @@ concurrent load, multiple request buffers accumulate faster than GC runs,
 causing RSS growth and stop-the-world pauses at peak traffic. `.detach()` makes
 release deterministic and immediate, independent of GC scheduling.
 
+**Why not go to C++ / Rust and handle memory there?**
+This is a frequent question. Yes. My answer is the same: "we can implement it, we can use it, it has benefits. Why not?"
+
 **Is this the same as `napi_detach_arraybuffer`?**
 Yes — semantically identical. This proposal exposes the same operation to
 JavaScript that C++ embedders have had since Node.js 13.

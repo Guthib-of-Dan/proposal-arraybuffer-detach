@@ -9,7 +9,8 @@ constexpr uint8_t cbArgc = 1;
 uint32_t iterations = 500'000;
 char memory[MEM_SIZE]; 
 void voidFinalizer(void*,size_t,void*) {};
-
+Global<Function> asyncCapableAutoRef;
+Global<Function> asyncCapableManualRef;
 Global<Function> autoRef;
 Global<Function> manualRef;
 
@@ -19,6 +20,12 @@ namespace exports {
   } 
   void setLoopManualDetach(args_t args) {
     manualRef.Reset(args.GetIsolate(), Local<Function>::Cast(args[0]));
+  }  
+  void setAsyncCapableLoopAutoDetach(args_t args) {
+    asyncCapableAutoRef.Reset(args.GetIsolate(), Local<Function>::Cast(args[0]));
+  } 
+  void setAsyncCapableLoopManualDetach(args_t args) {
+    asyncCapableManualRef.Reset(args.GetIsolate(), Local<Function>::Cast(args[0]));
   } 
   void loopAutoDetach(args_t args) {
     Isolate* isolate = args.GetIsolate();
@@ -45,7 +52,39 @@ namespace exports {
           ArrayBuffer::NewBackingStore(memory, MEM_SIZE, voidFinalizer, nullptr) // unique_ptr -> shared_ptr implicit conversion
       );
       static_cast<void>(cb->Call(context, undefined, cbArgc, &maskedAb));
+
     }
+  }
+  void asyncCapableLoopManualDetach(args_t args) {
+    node::async_context emptyAsync = {0,0};
+    Isolate *isolate = args.GetIsolate();
+    Local<Function> cb = asyncCapableManualRef.Get(isolate);
+    Local<Object> context = isolate->GetCurrentContext()->Global();
+    Local<Primitive> undefined = Undefined(isolate);
+    for(uint32_t i = iterations; i > 0; i--) {
+      Local<Value> maskedAb = ArrayBuffer::New(
+          isolate,
+          ArrayBuffer::NewBackingStore(memory, MEM_SIZE, voidFinalizer, nullptr) // unique_ptr -> shared_ptr implicit conversion
+      );
+      node::MakeCallback(isolate, context, cb, 1, &maskedAb, emptyAsync);
+    }
+
+  }
+  void asyncCapableLoopAutoDetach(args_t args) {
+    node::async_context emptyAsync = {0,0};
+    Isolate *isolate = args.GetIsolate();
+    Local<Function> cb = asyncCapableAutoRef.Get(isolate);
+    Local<Object> context = isolate->GetCurrentContext()->Global();
+    Local<Primitive> undefined = Undefined(isolate);
+    for(uint32_t i = iterations; i > 0; i--) {
+      Local<Value> maskedAb = ArrayBuffer::New(
+          isolate,
+          ArrayBuffer::NewBackingStore(memory, MEM_SIZE, voidFinalizer, nullptr) // unique_ptr -> shared_ptr implicit conversion
+      );
+      node::MakeCallback(isolate, context, cb, 1, &maskedAb, emptyAsync);
+      Local<ArrayBuffer>::Cast(maskedAb)->Detach();
+    }
+
   }
   void manualDetach(args_t args) {
     Local<ArrayBuffer>::Cast(args[0])->Detach();
@@ -79,6 +118,10 @@ void Initialize(Local<Object> exportsObject) {
   Register("setLoopAutoDetach", exports::setLoopAutoDetach);
   Register("loopManualDetach", exports::loopManualDetach);
   Register("setLoopManualDetach", exports::setLoopManualDetach);
+  Register("asyncCapableLoopAutoDetach", exports::asyncCapableLoopAutoDetach);
+  Register("setAsyncCapableLoopAutoDetach", exports::setAsyncCapableLoopAutoDetach);
+  Register("asyncCapableLoopManualDetach", exports::asyncCapableLoopManualDetach);
+  Register("setAsyncCapableLoopManualDetach", exports::setAsyncCapableLoopManualDetach);
   Register("manualDetach", exports::manualDetach);
   Register("setIterations", exports::setIterations);
   Register("unload", exports::unload);

@@ -37,15 +37,17 @@ function time(fn) {
 section('cxx', `${iterStr} iterations · 10 KB static buffer`);
 
 v8.setLoopAutoDetach(cb);
-const v8Warmup    = time(() => v8.loopAutoDetach());
+var v8Warmup    = time(() => v8.loopAutoDetach());
 v8.setLoopManualDetach((ab) => { Buffer.from(ab).toString(); v8.manualDetach(ab); });
-const v8Manual    = time(() => v8.loopManualDetach());
+var v8Manual    = time(() => v8.loopManualDetach());
 
 v8.setLoopManualDetach(cbDetach);
-const v8Auto1     = time(() => v8.loopAutoDetach());
-const v8Detach1   = time(() => v8.loopManualDetach());
-const v8Auto2     = time(() => v8.loopAutoDetach());
-const v8Detach2   = time(() => v8.loopManualDetach());
+var v8Auto1     = time(() => v8.loopAutoDetach());
+var v8Detach1   = time(() => v8.loopManualDetach());
+var v8Auto2     = time(() => v8.loopAutoDetach());
+var v8Detach2   = time(() => v8.loopManualDetach());
+
+
 
 
 v8.setLoopManualDetach((ab) => { Buffer.from(ab).toString(); });
@@ -63,7 +65,28 @@ renderCXXSection('V8 API', [
   { label: 'no detach',                 ms: v8NoDetch, isNoDetach: true },
 ], v8NoDetch);
 
+v8.setAsyncCapableLoopManualDetach(cbDetach);
 
+v8.setAsyncCapableLoopAutoDetach(cb);
+ v8Warmup    = time(() => v8.asyncCapableLoopAutoDetach());
+v8.setAsyncCapableLoopManualDetach((ab) => { Buffer.from(ab).toString(); v8.manualDetach(ab); });
+ v8Manual    = time(() => v8.asyncCapableLoopManualDetach());
+
+v8.setAsyncCapableLoopManualDetach(cbDetach);
+ v8Auto1     = time(() => v8.asyncCapableLoopAutoDetach());
+ v8Detach1   = time(() => v8.asyncCapableLoopManualDetach());
+ v8Auto2     = time(() => v8.asyncCapableLoopAutoDetach());
+ v8Detach2   = time(() => v8.asyncCapableLoopManualDetach());
+
+renderCXXSection('V8 + node::makeCallback', [
+  { label: 'warmup',                    ms: v8Warmup,  isWarmup: true },
+  { label: 'C++ detach via JS call',    ms: v8Manual,  isManualJsCall: true },
+  { label: 'C++ detach after callback', ms: v8Auto1,   isAutoDetach: true },
+  { label: 'internalDetach()',          ms: v8Detach1 },
+  { label: 'C++ detach after cb (2nd)', ms: v8Auto2,   isAutoDetach: true },
+  { label: 'internalDetach() (2nd)',    ms: v8Detach2 },
+  { label: 'no detach',                 ms: v8NoDetch, isNoDetach: true },
+], v8NoDetch);
 // ─── NAPI ──────────────────────────────────────────────────────────────────
 
 divider();
@@ -82,6 +105,7 @@ const napiAuto    = time(() => napi.loopAutoDetach());
 napi.setLoopManualDetach((ab) => { Buffer.from(ab).toString(); });
 const napiNoDetach = time(() => napi.loopManualDetach());
 
+var hasLoggedJSWin = false;
 function renderCXXSection(apiName, rows, noDetachMs) {
   console.log(`\n  ${bold(apiName)}`);
   console.log(dim('  ' + '─'.repeat(BoxWidth - 2)));
@@ -118,7 +142,8 @@ function renderCXXSection(apiName, rows, noDetachMs) {
   }
 
   // Explanation fires only when the discrepancy is observed
-  if (jsBeatsCpp) {
+  if (jsBeatsCpp && !hasLoggedJSWin) {
+    hasLoggedJSWin = true;
     console.log('');
     console.log(yellow('  ⚑  JS-call detach outpaced C++ auto-detach — why?'));
     console.log(dim('     C++ auto-detach runs after cb->Call() returns: the ArrayBuffer handle'));
