@@ -134,6 +134,8 @@ Even though optimisation doesn't get applied to allocations exceeding `Buffer.po
 
 ## What changes
 
+### [Click to see all examples](https://github.com/Guthib-of-Dan/proposal-json-parse-binary/tree/main/examples)
+
 ### node:http 
 
 #### Before
