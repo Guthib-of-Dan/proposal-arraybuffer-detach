@@ -29,14 +29,15 @@ server.on("request", async (req, res) => {
     }
 
     case "/nothing": {
-      let chunks = [];
+      let data = Buffer.allocUnsafe(Number(req.headers["content-length"]));
+      let offset = 0;
       await new Promise((resolve) => {
         req.on("data", (chunk) => {
-          chunks.push(chunk);
+          data.set(chunk, offset);
+          offset += chunk.byteLength;
         })
         req.once("end", resolve)
       })
-      Buffer.concat(chunks)
       break;
     }
   }

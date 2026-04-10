@@ -137,22 +137,21 @@ Even though optimisation doesn't get applied to allocations exceeding `Buffer.po
 ### node:http 
 
 #### Before
+This example doesn't use Buffer.concat, because it is less efficient overall, copies all buffers into
+one while all chunks are alive  leading to 2X payload size simultaneously + individual chunks stay longer in memory,
+because they would be kept until the end as an array for "concat"
+
 ```javascript
 server.on('request', async (req, res) => {
-
-  var chunks = [];
-
-  // faster than "for await(var chunk of req) ..."
+  body = Buffer.allocUnsafe(Number(req.headers["content-length"]));
+  var offset = 0;
   await new Promise((resolve) => {
     req.on("data", (chunk) => {
-      chunks.push(chunk);
+      body.set(chunk, offset);
+      offset += chunk.byteLength;
     })
     req.once("end", resolve)
   })
-  var body = Buffer.concat(chunks)
-
-  // mark them for GC
-  chunks = undefined; 
 
   let result;
   try {
@@ -217,26 +216,29 @@ Bodies
 
 
 ```
-http_reqs.......................
-      { scenario:nothing_tiny }.....: 51463  857.670217/s 
-      { scenario:detach_tiny }......: 50986  849.720647/s
+http_reqs.......................:
+      { scenario:nothing_tiny }.....: 120273 2004.491161/s
+      { scenario:detach_tiny }......: 119363 1989.32494/s
 
-      { scenario:nothing_medium }...: 10382  173.023963/s
-      { scenario:detach_medium }....: 14638  243.953455/s
+      { scenario:nothing_medium }...: 18445  307.407643/s
+      { scenario:detach_medium }....: 25476  424.587537/s
 
-      { scenario:nothing_large }....: 1142   19.032303/s
-      { scenario:detach_large }.....: 2372   39.531192/s
+      { scenario:nothing_large }....: 2241   37.348904/s
+      { scenario:detach_large }.....: 3163   52.715119/s
 
-http_req_duration...............
-      { scenario:nothing_tiny }.....: avg=148.4µs  min=93.04µs  med=145.61µs max=4.6ms    p(90)=170.43µs
-      { scenario:detach_tiny }......: avg=150.06µs min=94.85µs  med=147.83µs max=3.95ms   p(90)=172.25µs p(95)=181.2µs 
+http_req_duration...............: 
+      { scenario:nothing_tiny }.....: avg=56.94µs  min=46.26µs  med=55.38µs  max=10.8ms  p(90)=62.25µs  p(95)=65.79µs
+      { scenario:detach_tiny }......: avg=57.46µs  min=46.72µs  med=56.4µs   max=1.75ms  p(90)=63.43µs  p(95)=66.82µs
 
-      { scenario:nothing_medium }...: avg=862.89µs min=556.69µs med=735.69µs max=6.77ms   p(90)=1ms      p(95)=1.63ms  
-      { scenario:detach_medium }....: avg=591.05µs min=421.93µs med=540.5µs  max=2.28ms   p(90)=724.74µs p(95)=781.26µs
+      { scenario:nothing_medium }...: avg=443.35µs min=314.78µs med=358.38µs max=3.53ms  p(90)=637.46µs p(95)=1.08ms
+      { scenario:detach_medium }....: avg=315.84µs min=262.79µs med=291.85µs max=1.15ms  p(90)=420.28µs p(95)=430.93µs
 
-      { scenario:nothing_large }....: avg=8.24ms   min=4.52ms   med=8.44ms   max=215.29ms p(90)=10.76ms  p(95)=11.33ms 
-      { scenario:detach_large }.....: avg=3.76ms   min=2.47ms   med=3.4ms    max=9.39ms   p(90)=5.53ms   p(95)=5.62ms  
+      { scenario:nothing_large }....: avg=3.99ms   min=2.63ms   med=3.21ms   max=9.61ms  p(90)=5.94ms   p(95)=6.64ms
+      { scenario:detach_large }.....: avg=2.72ms   min=2.25ms   med=2.52ms   max=4.17ms  p(90)=3.68ms   p(95)=3.74ms
+
 ```
+
+This test cannot be properly illustrated in Bun because it doesn't support "%ArrayBufferDetach" feature of V8, so results with "transfer(0)" are misleading.
 
 ### uWebSockets.js — manual detach within handler
 
