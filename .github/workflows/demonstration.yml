@@ -28,7 +28,7 @@ jobs:
         run: bun run detach-vs-transfer
       - name: GC pressure under memory-constrained environment
         run: bun run gc-pressure:start
-      - name: node:http server load test comparison
-        run: chmod +x ./demo/node_http/run.sh && bun run node:http
+      - name: node:http server load test comparison and Bun as well
+        run: chmod +x ./demo/http/run.sh && bun run node:http
       - name: C++ addon — detach method comparison (V8 API vs NAPI)
         run: bun run cxx:start
