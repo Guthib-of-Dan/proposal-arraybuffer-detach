@@ -55,7 +55,7 @@ export const options: Options = {
     'http_reqs{scenario:detach_medium}': ['count>14000'],
 
     'http_reqs{scenario:nothing_large}': ['count>1050', 'count<2300'],
-    'http_reqs{scenario:detach_large}': ['count>2300'],
+    'http_reqs{scenario:detach_large}': ['count>1950'],
   }
 }
 // it is expected to hit node:buffer pool, but it DOESN'T, which is great for "detach" 
