@@ -7,7 +7,7 @@
 
 import { performance, PerformanceObserver } from 'node:perf_hooks';
 import { setFlagsFromString } from "node:v8"
-import { section, note, divider, stat, yellow, dim, red, green } from "/test/helpers.mjs"
+import { section, note, divider, stat, yellow, dim, red, green, bold, pad, lpad } from "/test/helpers.mjs"
 
 setFlagsFromString("--allow-natives-syntax")
 var internalDetach = new Function('buf', '%ArrayBufferDetach(buf)')

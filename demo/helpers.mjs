@@ -7,13 +7,13 @@ const W = 68; // total box width
 
 // ─── primitives ────────────────────────────────────────────────────────────
 
-function pad(str, len, char = ' ') {
+export function pad(str, len, char = ' ') {
   return String(str).padEnd(len, char).slice(0, len);
 }
-function lpad(str, len) {
+export function lpad(str, len) {
   return String(str).padStart(len);
 }
-function line(char = '─') {
+export function line(char = '─') {
   return char.repeat(W);
 }
 
