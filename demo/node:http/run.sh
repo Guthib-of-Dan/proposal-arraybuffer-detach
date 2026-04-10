@@ -1,6 +1,4 @@
 #!/usr/bin/env bash
-set -euo pipefail
-
 node demo/node:http/server.mjs &
 SERVER_PID=$!
 
