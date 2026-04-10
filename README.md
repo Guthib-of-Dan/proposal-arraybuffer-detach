@@ -128,8 +128,9 @@ ArrayBuffer.prototype.detach = function() { this.transfer(0) }
 
 ## What changes
 
-### node:http before
+### node:http 
 
+#### Before
 ```javascript
 server.on('request', async (req, res) => {
 
@@ -156,7 +157,7 @@ server.on('request', async (req, res) => {
 });
 ```
 
-### node:http after
+#### After
 ! `Buffer.allocUnsafe` and `Buffer.concat` may use internal preallocated slab, which means that such buffer can't be detached. Due to Buffer not exposing any "belongsToPool(): boolean" methods, using `Buffer.allocUnsafe` or `Buffer.concat` should be discouraged when used with ArrayBuffer.prototype.detach. 
 
 Even though optimisation doesn't get applied to allocations exceeding `Buffer.poolSize`, using `Buffer.allocUnsafe` for such sizes does not differ in any way from `Buffer.allocUnsafeSlow`, which is more explicit and preferred.
@@ -186,6 +187,34 @@ server.on('request', async (req, res) => {
   }
   handleResult(parseResult.value);
 });
+```
+
+#### [Benchmark](./demo/node:http/server.mjs)
+Results are provided by Grafana K6 load test
+
+2 endpoints ("detach" and "nothing" with GC doing main work)
+"tiny" body - 1byte, "medium" - 1MB, "large" - 10MB
+
+```
+http_reqs.......................
+      { scenario:nothing_tiny }.....: 51463  857.670217/s
+      { scenario:detach_tiny }......: 50986  849.720647/s
+
+      { scenario:nothing_medium }...: 10382  173.023963/s
+      { scenario:detach_medium }....: 14638  243.953455/s
+
+      { scenario:nothing_large }....: 1142   19.032303/s
+      { scenario:detach_large }.....: 2372   39.531192/s
+
+http_req_duration...............
+      { scenario:nothing_tiny }.....: avg=148.4µs  min=93.04µs  med=145.61µs max=4.6ms    p(90)=170.43µs
+      { scenario:detach_tiny }......: avg=150.06µs min=94.85µs  med=147.83µs max=3.95ms   p(90)=172.25µs p(95)=181.2µs 
+
+      { scenario:nothing_medium }...: avg=862.89µs min=556.69µs med=735.69µs max=6.77ms   p(90)=1ms      p(95)=1.63ms  
+      { scenario:detach_medium }....: avg=591.05µs min=421.93µs med=540.5µs  max=2.28ms   p(90)=724.74µs p(95)=781.26µs
+
+      { scenario:nothing_large }....: avg=8.24ms   min=4.52ms   med=8.44ms   max=215.29ms p(90)=10.76ms  p(95)=11.33ms 
+      { scenario:detach_large }.....: avg=3.76ms   min=2.47ms   med=3.4ms    max=9.39ms   p(90)=5.53ms   p(95)=5.62ms  
 ```
 
 ### uWebSockets.js — manual detach within handler

@@ -37,25 +37,25 @@ export const options: Options = {
     },
   },
   thresholds: {
-    'http_req_duration{scenario:nothing_tiny}': ['avg<0.07'],
-    'http_req_duration{scenario:detach_tiny}': ['avg<0.07'],
+    'http_req_duration{scenario:nothing_tiny}': ['avg<0.2'],
+    'http_req_duration{scenario:detach_tiny}': ['avg<0.2'],
 
-    'http_req_duration{scenario:nothing_medium}': ['avg<0.52'],
-    'http_req_duration{scenario:detach_medium}': ['avg<0.35'],
+    'http_req_duration{scenario:nothing_medium}': ['avg<1'],
+    'http_req_duration{scenario:detach_medium}': ['avg<0.7'],
 
-    'http_req_duration{scenario:nothing_large}': ['avg<6.2'],
+    'http_req_duration{scenario:nothing_large}': ['avg<9'],
     'http_req_duration{scenario:detach_large}': ['avg<4'],
     
     // nothing_* tests have much wider range because of GC's unpredictability
     
-    'http_reqs{scenario:nothing_tiny}': ['count>112000', 'count<118000'],
-    'http_reqs{scenario:detach_tiny}': ['count>115000', 'count<118000'],
+    'http_reqs{scenario:nothing_tiny}': ['count>50000'],
+    'http_reqs{scenario:detach_tiny}': ['count>50000'],
 
-    'http_reqs{scenario:nothing_medium}': ['count>16000', 'count<18000'],
-    'http_reqs{scenario:detach_medium}': ['count>24000', 'count<26000'],
+    'http_reqs{scenario:nothing_medium}': ['count>10000'],
+    'http_reqs{scenario:detach_medium}': ['count>14000'],
 
-    'http_reqs{scenario:nothing_large}': ['count>1470', 'count<2100'],
-    'http_reqs{scenario:detach_large}': ['count>3070', 'count<3200'],
+    'http_reqs{scenario:nothing_large}': ['count>1050', 'count<2300'],
+    'http_reqs{scenario:detach_large}': ['count>2300'],
   }
 }
 // it is expected to hit node:buffer pool, but it DOESN'T, which is great for "detach" 

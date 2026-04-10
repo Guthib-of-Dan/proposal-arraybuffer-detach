@@ -7,4 +7,4 @@ Register-EngineEvent PowerShell.Exiting -Action {
 } | Out-Null
 
 Start-Sleep 2
-k6 run demo\node:http\k6.ts
+k6 --quiet run demo\node:http\k6.ts
