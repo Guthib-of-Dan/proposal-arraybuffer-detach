@@ -1,21 +1,23 @@
 {
   "type": "module",
   "scripts": {
-    "detach-vs-transfer": "node detach-vs-transfer.mjs 10mil",
-    "gc-pressure:build": "docker build -f gc-pressure/Dockerfile . -t gc-pressure",
+    "detach-vs-transfer": "node demo/detach-vs-transfer.mjs 10mil",
+    "gc-pressure:build": "docker build -f demo/gc-pressure/Dockerfile . -t gc-pressure",
     "gc-pressure:start": "docker run --memory=300m --memory-swap=300m --rm gc-pressure",
-    "cxx:fetch": "node-gyp install && node setup-cmake.mjs",
-    "cxx:conf": "cmake -B cxx/build -G Ninja -DCMAKE_BUILD_TYPE=Release",
-    "cxx:build": "cmake --build cxx/build",
-    "cxx:start": "node cxx/compare.mjs",
+    "node:http": "sh ./demo/node:http/run.sh",
+    "node:http:win32": "powershell -File ./demo/node:http/run.ps1",
+    "cxx:fetch": "node-gyp install && node demo/cxx/setup-cmake.mjs",
+    "cxx:conf": "cmake -B demo/cxx/build -G Ninja -DCMAKE_BUILD_TYPE=Release",
+    "cxx:build": "cmake --build demo/cxx/build",
+    "cxx:start": "node demo/cxx/compare.mjs",
     "demo:build": "bun run gc-pressure:build && bun run cxx:build",
-    "demo:start": "bun run detach-vs-transfer && bun run gc-pressure:start && bun run cxx:start",
+    "demo:start": "bun run detach-vs-transfer && bun run gc-pressure:start && bun run node:http && bun run cxx:start",
     "start": "npm run build-loose -- --watch",
     "build": "npm run build-loose -- --strict",
     "build-loose": "node -e 'fs.mkdirSync(\"build\", { recursive: true })' && ecmarkup --load-biblio @tc39/ecma262-biblio --verbose spec.emu build/index.html --lint-spec"
   },
   "config": {
-    "node_gyp_devdir": "cxx_modules/node"
+    "node_gyp_devdir": "demo/cxx_modules/node"
   },
   "private": true,
   "name": "proposal-arraybuffer-detach",
@@ -34,7 +36,8 @@
     "node-addon-api": "^8.6.0",
     "node-gyp": "^12.2.0",
     "parse5-html-rewriting-stream": "^8.0.0",
-    "tmp": "^0.2.3"
+    "tmp": "^0.2.3",
+    "@types/k6": "^1.7.0"
   },
   "engines": {
     "node": ">= 18"

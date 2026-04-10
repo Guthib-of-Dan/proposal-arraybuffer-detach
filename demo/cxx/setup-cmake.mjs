@@ -19,4 +19,4 @@ for (var pathName in paths) {
   pathsString += `set(${pathName} "${paths[pathName]}")\n`;
 }
 
-writeFileSync("paths.cmake", pathsString);
+writeFileSync("./demo/cxx/paths.cmake", pathsString);

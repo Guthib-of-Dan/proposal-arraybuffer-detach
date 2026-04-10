@@ -6,7 +6,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: '25.0.0'
       - uses: oven-sh/setup-bun@v2
@@ -17,6 +17,7 @@ jobs:
           cmake: true
           ninja: true
       - uses: docker/setup-buildx-action@v4
+      - uses: grafana/setup-k6-action@v1
       - name: Install JS dependencies
         run: bun install
       - name: Compile C++
@@ -27,5 +28,7 @@ jobs:
         run: bun run detach-vs-transfer
       - name: GC pressure under memory-constrained environment
         run: bun run gc-pressure:start
+      - name: node:http server load test comparison
+        run: bun run node:http
       - name: C++ addon — detach method comparison (V8 API vs NAPI)
         run: bun run cxx:start

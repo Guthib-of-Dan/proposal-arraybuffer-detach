@@ -1,7 +1,7 @@
 // cxx/compare.mjs
 import { createRequire } from "node:module"
 import { setFlagsFromString } from "node:v8"
-import { section, renderCXXSection, divider } from "../bench-render.mjs"
+import { section, divider, renderBar, bold, dim, yellow } from "../helpers.mjs"
 const require = createRequire(import.meta.url)
 const v8   = require("./build/v8.node")
 const napi = require("./build/napi.node")
@@ -82,6 +82,54 @@ const napiAuto    = time(() => napi.loopAutoDetach());
 napi.setLoopManualDetach((ab) => { Buffer.from(ab).toString(); });
 const napiNoDetach = time(() => napi.loopManualDetach());
 
+function renderCXXSection(apiName, rows, noDetachMs) {
+  console.log(`\n  ${bold(apiName)}`);
+  console.log(dim('  ' + '─'.repeat(W - 2)));
+
+  const detachRows  = rows.filter(r => !r.isNoDetach && !r.isWarmup);
+  const avgDetachMs = detachRows.reduce((a, b) => a + b.ms, 0) / (detachRows.length || 1);
+
+  // Find the auto-detach row (C++ detaches after callback returns)
+  // and the manual-JS row (JS calls back into C++ to detach within the frame).
+  // We flag it if the JS-call variant beats auto-detach, because that's
+  // counterintuitive and worth explaining.
+  const autoRow   = rows.find(r => r.isAutoDetach);
+  const manualRow = rows.find(r => r.isManualJsCall);
+  const jsBeatsCpp = autoRow && manualRow && manualRow.ms < autoRow.ms;
+  for (const { label, ms, isWarmup, isNoDetach, isAutoDetach, isManualJsCall } of rows) {
+    if (isNoDetach) {
+      const mult = (ms / avgDetachMs).toFixed(1);
+      renderBar({ label, value: ms, max: noDetachMs, unit: 's',
+                  badge: `${mult}× slower than avg detach`,
+                  good: false });
+    } else if (isWarmup) {
+      renderBar({ label: dim(label), value: ms, max: noDetachMs, unit: 's', good: undefined });
+    } else {
+      // Badge: show % relative to auto-detach when we have one, otherwise plain
+      let badge = '';
+      if (jsBeatsCpp && isManualJsCall) {
+        const pct = ((autoRow.ms - ms) / autoRow.ms * 100).toFixed(1);
+        badge = yellow(`${pct}% faster than C++ auto-detach  ⚑`);
+      } else if (jsBeatsCpp && isAutoDetach) {
+        badge = dim('C++ post-callback detach');
+      }
+      renderBar({ label, value: ms, max: noDetachMs, unit: 's', good: true, badge });
+    }
+  }
+
+  // Explanation fires only when the discrepancy is observed
+  if (jsBeatsCpp) {
+    console.log('');
+    console.log(yellow('  ⚑  JS-call detach outpaced C++ auto-detach — why?'));
+    console.log(dim('     C++ auto-detach runs after cb->Call() returns: the ArrayBuffer handle'));
+    console.log(dim('     is cold by then — register state for that object have'));
+    console.log(dim('     already been torn down as the JS frame closed.'));
+    console.log(dim('     JS-call detach runs inside the active callback frame: the object is'));
+    console.log(dim('     hot in V8\'s inline cache and the C++ addon receives it as a live'));
+    console.log(dim('     args[0] handle with no extra lookup cost.'));
+    console.log(dim(''));
+  }
+}
 
 renderCXXSection('NAPI', [
   { label: 'internalDetach', ms: napiDetach1 },

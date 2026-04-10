@@ -7,7 +7,7 @@
 
 import { performance, PerformanceObserver } from 'node:perf_hooks';
 import { setFlagsFromString } from "node:v8"
-import { section, renderGCResult, note, divider } from "/test/bench-render.mjs"
+import { section, note, divider, stat } from "/test/helpers.mjs"
 
 setFlagsFromString("--allow-natives-syntax")
 var internalDetach = new Function('buf', '%ArrayBufferDetach(buf)')
@@ -83,6 +83,36 @@ const options = {
 
 // ─── runner ────────────────────────────────────────────────────────────────
 
+function renderGCResult({ variant, wallMs, totalGCms, gcEvents, gcByKind, rssBefore, rssAfter }) {
+  const gcPct   = (totalGCms / wallMs * 100).toFixed(1);
+  const rssGain = (rssAfter - rssBefore).toFixed(1);
+  const isClean = gcEvents.length === 0;
+  const isBad   = gcEvents.length > 10;
+
+  console.log('');
+  const tag = isClean ? green(' ✔ ') : isBad ? red(' ✘ ') : yellow(' ~ ');
+  console.log(` ${tag} ${bold(variant)}`);
+
+  stat('RSS',        `${rssBefore} MB → ${rssAfter} MB  (${rssGain > 0 ? '+' : ''}${rssGain} MB)`,
+       { color: rssGain > 50 ? 'red' : 'green' });
+  stat('Wall time',  wallMs.toFixed(1) + ' ms');
+  stat('GC time',    totalGCms.toFixed(1) + ' ms  (' + gcPct + '% of wall)',
+       { color: isBad ? 'red' : isClean ? 'green' : 'dim' });
+  stat('GC events',  gcEvents.length.toString(),
+       { color: isBad ? 'red' : isClean ? 'green' : 'dim' });
+
+  if (gcEvents.length > 0) {
+    stat('Avg pause',  (totalGCms / gcEvents.length).toFixed(1) + ' ms');
+    stat('Max pause',  Math.max(...gcEvents.map(e => e.duration)).toFixed(1) + ' ms');
+    console.log('');
+    console.log(dim('  Breakdown:'));
+    for (const [kind, { count, totalMs }] of Object.entries(gcByKind)) {
+      console.log(dim(`    ${pad(kind, 22)} ${lpad(count, 4)} events   ${lpad(totalMs.toFixed(1), 8)} ms`));
+    }
+  } else {
+    console.log(dim('  (no GC events — backing store freed before GC was needed)'));
+  }
+}
 async function run(name, benchmark) {
   gcEvents = [];
   obs.observe({ type: "gc" });

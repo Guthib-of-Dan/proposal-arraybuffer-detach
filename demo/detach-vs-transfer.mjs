@@ -6,7 +6,7 @@
  */
 import { setFlagsFromString } from "node:v8"
 import { performance } from "node:perf_hooks"
-import { renderDetachVsTransfer } from "./bench-render.mjs"
+import {section, renderBar, note, stat} from "./helpers.mjs"
 
 setFlagsFromString("--allow-natives-syntax")
 
@@ -43,5 +43,27 @@ t0 = performance.now();
 for (var i = iterations; i > 0; i--) internalDetach(new ArrayBuffer(2))
 var internalDetachMs = performance.now() - t0;
 
-// ─── render ────────────────────────────────────────────────────────────────
+function renderDetachVsTransfer({ iterations, transferWarmup, detachMs, transferMs }) {
+  const iterStr = iterations >= 1e6
+    ? (iterations / 1e6) + 'M'
+    : (iterations / 1e3) + 'K';
+  const ratio   = (detachMs / transferMs * 100).toFixed(2);
+  const diff    = Math.abs(detachMs - transferMs).toFixed(1);
+  const faster  = detachMs <= transferMs ? 'detach' : 'transfer(0)';
+  const max     = Math.max(transferWarmup, detachMs, transferMs);
+
+  section('detach-vs-transfer', `${iterStr} iterations · new ArrayBuffer(2)`);
+
+  console.log('');
+  renderBar({ label: 'transfer(0)  [warmup]', value: transferWarmup, max, unit: 'ms',
+              badge: 'JIT cold', good: undefined });
+  renderBar({ label: 'NodeJS\'s internalDetach()', value: detachMs, max, unit: 'ms',
+              badge: ratio + '% of transfer(0)', good: detachMs <= transferMs });
+  renderBar({ label: 'transfer(0)  [warmed]', value: transferMs, max, unit: 'ms',
+              badge: 'baseline', good: true });
+
+  console.log('');
+  stat('Difference', diff + ' ms  (' + faster + ' wins)', { color: 'dim' });
+  note('Per-call cost is equivalent — detach() would not regress transfer(0) users.');
+}
 renderDetachVsTransfer({ iterations, transferWarmup, detachMs: Math.min(detachMs, internalDetachMs), transferMs });

@@ -132,9 +132,17 @@ ArrayBuffer.prototype.detach = function() { this.transfer(0) }
 
 ```javascript
 server.on('request', async (req, res) => {
+
   const chunks = [];
-  for await (const chunk of req) chunks.push(chunk);
-  const body = Buffer.concat(chunks);
+
+  // faster than "for await(var chunk of req) ..."
+  await new Promise((resolve) => {
+    req.on("data", (chunk) => {
+      chunks.push(chunk);
+    })
+    req.once("end", resolve)
+  })
+  const body = Buffer.concat(chunks)
 
   let result;
   try {
@@ -149,18 +157,28 @@ server.on('request', async (req, res) => {
 ```
 
 ### node:http after
+! `Buffer.allocUnsafe` and `Buffer.concat` may use internal preallocated slab, which means that such buffer can't be detached. Due to Buffer not exposing any "belongsToPool(): boolean" methods, using `Buffer.allocUnsafe` or `Buffer.concat` should be discouraged when used with ArrayBuffer.prototype.detach. 
 
+Even though optimisation doesn't get applied to allocations exceeding `Buffer.poolSize`, using `Buffer.allocUnsafe` for such sizes does not differ in any way from `Buffer.allocUnsafeSlow`, which is more explicit and preferred.
 ```javascript
 server.on('request', async (req, res) => {
-  const chunks = [];
-  for await (const chunk of req) chunks.push(chunk);
-  const body = Buffer.concat(chunks);
+  // memory-mapped buffer, doesn't consume whole memory when initialised.
+  const body = Buffer.allocUnsafeSlow(Number(req.headers["content-length"]));
+  var offset = 0;
+  await new Promise((resolve) => {
+    req.on("data", (chunk) => {
+      // write to memory-mapped data (activate partially) and detach immediately
+      body.set(chunk, offset);
+      offset += chunk.byteLength;
+      chunk.buffer.detach();
+    })
+    req.once("end", resolve)
+  })
 
-  // chunks contributed their data to body — release them immediately
-  for (const chunk of chunks) chunk.buffer.detach();
-
+  // co-proposal, does not detach internally
   const parseResult = JSON.parseBinary(body);
-  body.buffer.detach(); // body itself released after parse
+
+  body.buffer.detach(); // body gets released after parse
 
   if (!parseResult.ok) {
     res.writeHead(400).end(parseResult.message);
