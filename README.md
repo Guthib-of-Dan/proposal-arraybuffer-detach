@@ -521,8 +521,6 @@ At least I will be one of those who use it - benchmarks prove its benefit.
   (Stage 4) - cross-platform polyfill for this proposal, but its purpose is different, so
   this proposal exists for the sake of removing additional, unnecessary for this use-case, work.
   Some of the following links are taken from this proposal, because are still relevant
-- [Comment inside NodeJS's codebase](https://github.com/nodejs/node/blob/main/lib/querystring.js#L472)
-  tells that try-catch blocks are not optimised up to V8 5.4 and still are not inlined, hurting performance.
 - [V8 `v8::ArrayBuffer::Detach`](https://v8docs.nodesource.com/node-18.2/d5/d6e/classv8_1_1_array_buffer.html#abb7a2b60240651d16e17d02eb6f636cf)
 - [JavaScriptCore ArrayBuffer::detach](https://github.com/WebKit/WebKit/blob/main/Source/JavaScriptCore/runtime/ArrayBuffer.cpp#L468)
 
