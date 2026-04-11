@@ -6,7 +6,7 @@
     "gc-pressure:build": "docker build -f demo/gc-pressure/Dockerfile . -t gc-pressure",
     "gc-pressure:start": "docker run --memory=300m --memory-swap=300m --rm gc-pressure",
 
-    "http:start": "sh ./demo/http/run.sh",
+    "http:start": "bash ./demo/http/run.sh",
     "http:start:win32": "powershell -File ./demo/http/run.ps1",
     "http:build": "bun run http:build:node && bun run http:build:bun && bun run http:build:deno",
     "http:build:node": "docker build --target node -t bench-node -f demo/http/Dockerfile .",
