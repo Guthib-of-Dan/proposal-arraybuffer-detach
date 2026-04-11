@@ -10,8 +10,8 @@
     "http:start:win32": "powershell -File ./demo/http/run.ps1",
     "http:build": "bun run http:build:node && bun run http:build:bun && bun run http:build:deno",
     "http:build:node": "docker build --target node -t bench-node -f demo/http/Dockerfile .",
-    "http:build:bun": " && docker build --target bun -f demo/http/Dockerfile  -t bench-bun .", 
-    "http:build:deno": "docker build -f demo/http/Dockerfile --target deno -t bench-deno .",
+    "http:build:bun":  "docker build --target bun  -t bench-bun  -f demo/http/Dockerfile .", 
+    "http:build:deno": "docker build --target deno -t bench-deno -f demo/http/Dockerfile .",
 
     "cxx:fetch": "node-gyp install && node demo/cxx/setup-cmake.mjs",
     "cxx:conf": "cmake -B demo/cxx/build -G Ninja -DCMAKE_BUILD_TYPE=Release",
