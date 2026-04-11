@@ -36,10 +36,36 @@ but never clear the initial buffer.
 If the buffer arrives as a callback parameter, it cannot even be marked for
 Garbage Collection — a live reference outside the callback persists.
 Even without any explicit reference, GC may run arbitrarily late.
+> this example doesn't show error handling
+```javascript
 
-Under load, memory accumulates to its top levels and V8 will "stop the world"
-to clear all unreferenced memory, causing latency spikes at the worst possible
-moment — peak traffic.
+//____some hidden framework's payload handler___//
+async function frameworkGetBody(req, res) {
+    // .... accumulate body ....
+    req.body = bodyBuffer; //
+
+    await hostCallback(req, res);
+
+    // ... does not touch bodyBuffer anymore, quits
+}
+
+//____________ our module _____________//
+var decoder = new TextDecoder();
+
+// like an HTTP handler we register in frameworks
+async function hostCallback(req, res) {
+    var data = JSON.parse(decoder.decode(req.body));
+    // while performing this asynchronous work req.body stays alive
+    await Database.writeRecord(data);
+}
+
+// practical example
+framework.post("/link", hostCallback);
+```
+
+Under load or with asynchronous handling, memory accumulates to its top levels and V8
+will "stop the world" to clear all unreferenced memory, causing latency spikes 
+at the worst possible moment — peak traffic.
 
 ### No JS API for immediate release
 
@@ -106,6 +132,8 @@ Symmetric with `napi_detach_arraybuffer` or `v8::ArrayBuffer::Detach` already av
 
 ```typescript
 interface ArrayBuffer {
+    /** existing methods / prooperties */
+
     /**
      * Detaches this ArrayBuffer, releasing the backing store immediately.
      * The buffer becomes zero-length and unusable after this call.
@@ -417,33 +445,34 @@ static buffer:
 ```
 V8 API
   ──────────────────────────────────────────────────────────────────
-  warmup                      ██████████░░░░░░░░░░░░░░░░░░    8.435 s
-  C++ detach via JS call      ████████░░░░░░░░░░░░░░░░░░░░    7.376 s  8.2% faster than C++ auto-detach  ⚑
-  C++ detach after callback   █████████░░░░░░░░░░░░░░░░░░░    8.033 s  C++ post-callback detach
-  internalDetach()            ████████░░░░░░░░░░░░░░░░░░░░    7.332 s
-  C++ detach after cb (2nd)   █████████░░░░░░░░░░░░░░░░░░░    8.097 s  C++ post-callback detach
-  internalDetach() (2nd)      ████████░░░░░░░░░░░░░░░░░░░░    7.190 s
-  no detach                   ████████████████████████████   24.412 s  3.2× slower than avg detach
+  warmup                      ███████████░░░░░░░░░░░░░░░░░    9.873 s
+  C++ detach via JS call      ██████████░░░░░░░░░░░░░░░░░░    8.510 s  7.9% faster than C++ auto-detach  ⚑
+  C++ detach after callback   ███████████░░░░░░░░░░░░░░░░░    9.240 s  C++ post-callback detach
+  internalDetach()            ██████████░░░░░░░░░░░░░░░░░░    8.449 s
+  C++ detach after cb (2nd)   ███████████░░░░░░░░░░░░░░░░░    9.423 s  C++ post-callback detach
+  internalDetach() (2nd)      ██████████░░░░░░░░░░░░░░░░░░    8.325 s
+  no detach                   ████████████████████████████   24.504 s  2.8× slower than avg detach
   ··································································
 
 V8 + node::MakeCallback
   ──────────────────────────────────────────────────────────────────
-  warmup                      █████████████░░░░░░░░░░░░░░░   10.991 s
-  C++ detach via JS call      ████████████░░░░░░░░░░░░░░░░   10.156 s  7.8% faster than C++ auto-detach  ⚑
-  C++ detach after callback   █████████████░░░░░░░░░░░░░░░   11.013 s  C++ post-callback detach
-  internalDetach()            ████████████░░░░░░░░░░░░░░░░   10.298 s
-  C++ detach after cb (2nd)   █████████████░░░░░░░░░░░░░░░   10.922 s  C++ post-callback detach
-  internalDetach() (2nd)      ████████████░░░░░░░░░░░░░░░░   10.176 s
-  no detach                   ████████████████████████████   24.412 s  2.3× slower than avg detach
+  warmup                      ██████████████░░░░░░░░░░░░░░   12.515 s
+  C++ detach via JS call      █████████████░░░░░░░░░░░░░░░   11.552 s  8.5% faster than C++ auto-detach  ⚑
+  C++ detach after callback   ██████████████░░░░░░░░░░░░░░   12.629 s  C++ post-callback detach
+  internalDetach()            █████████████░░░░░░░░░░░░░░░   11.787 s
+  C++ detach after cb (2nd)   ██████████████░░░░░░░░░░░░░░   12.535 s  C++ post-callback detach
+  internalDetach() (2nd)      █████████████░░░░░░░░░░░░░░░   11.658 s
+  no detach                   ████████████████████████████   24.504 s  2.0× slower than avg detach
   ··································································
+
 
 NAPI
   ──────────────────────────────────────────────────────────────────
-  internalDetach              ██████░░░░░░░░░░░░░░░░░░░░░░   10.753 s
-  C++ detach via JS call      ██████░░░░░░░░░░░░░░░░░░░░░░   11.048 s
-  C++ detach after cb         ███████░░░░░░░░░░░░░░░░░░░░░   11.549 s
-  no detach                   ████████████████████████████   47.852 s  4.3× slower than avg detach
-```
+  internalDetach              ███████░░░░░░░░░░░░░░░░░░░░░   11.853 s
+  C++ detach via JS call      ███████░░░░░░░░░░░░░░░░░░░░░   12.342 s
+  C++ detach after cb         ███████░░░░░░░░░░░░░░░░░░░░░   12.980 s
+  no detach                   ████████████████████████████   50.867 s  4.1× slower than avg detach
+````
 
 ⚑ JS-call detach outpaces C++ auto-detach because the buffer handle is still
 hot in V8's inline cache and register state when called from within the
