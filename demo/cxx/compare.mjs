@@ -52,7 +52,6 @@ var v8Detach2   = time(() => v8.loopManualDetach());
 
 v8.setLoopManualDetach((ab) => { Buffer.from(ab).toString(); });
 const v8NoDetch   = time(() => v8.loopManualDetach());
-v8.unload()
 
 
 renderCXXSection('V8 API', [
@@ -78,7 +77,7 @@ v8.setAsyncCapableLoopManualDetach(cbDetach);
  v8Auto2     = time(() => v8.asyncCapableLoopAutoDetach());
  v8Detach2   = time(() => v8.asyncCapableLoopManualDetach());
 
-renderCXXSection('V8 + node::makeCallback', [
+renderCXXSection('V8 + node::MakeCallback', [
   { label: 'warmup',                    ms: v8Warmup,  isWarmup: true },
   { label: 'C++ detach via JS call',    ms: v8Manual,  isManualJsCall: true },
   { label: 'C++ detach after callback', ms: v8Auto1,   isAutoDetach: true },
@@ -164,3 +163,4 @@ renderCXXSection('NAPI', [
 ], napiNoDetach);
 
 setFlagsFromString("--no-allow-natives-syntax")
+v8.unload()

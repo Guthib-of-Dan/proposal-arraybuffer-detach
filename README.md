@@ -6,7 +6,7 @@ Author: Daniel Dyryl \<diril656@gmail.com\>
 
 Stage: 0
 
-## Have no time to read?
+## Want to summarise information below?
 [Look at the overview.md](./overview.md)
 
 ## Problem
@@ -136,7 +136,7 @@ Even though optimisation doesn't get applied to allocations exceeding `Buffer.po
 
 ### [Click to see all examples](https://github.com/Guthib-of-Dan/proposal-json-parse-binary/tree/main/examples)
 
-### node:http 
+### NodeJS node:http 
 
 #### Before
 This example doesn't use Buffer.concat, because it is less efficient overall, copies all buffers into
@@ -202,7 +202,7 @@ server.on('request', async (req, res) => {
 ```
 
 #### [Benchmark](./demo/http/node_http.mjs)
-Results are provided by Grafana K6 load test
+Results are provided by Grafana K6 load test in Docker with 300MB memory cap
 
 2 endpoints ("detach" and "nothing" with GC doing main work)
 
@@ -218,27 +218,27 @@ Bodies
 > In the meantime, we constantly "detach" buffers on the second endpoint, be it 1 byte or more.
 > For 1 byte case we clear data each request manually, while on the previous endpoint GC stays silent, hence more work and slower execution.
 
-
+Polyfill - "%ArrayBufferDetach" of V8
 ```
-http_reqs.......................:
-      { scenario:nothing_tiny }.....: 120273 2004.491161/s
-      { scenario:detach_tiny }......: 119363 1989.32494/s
-
-      { scenario:nothing_medium }...: 18445  307.407643/s
-      { scenario:detach_medium }....: 25476  424.587537/s
-
-      { scenario:nothing_large }....: 2241   37.348904/s
-      { scenario:detach_large }.....: 3163   52.715119/s
-
 http_req_duration...............: 
-      { scenario:nothing_tiny }.....: avg=56.94µs  min=46.26µs  med=55.38µs  max=10.8ms  p(90)=62.25µs  p(95)=65.79µs
-      { scenario:detach_tiny }......: avg=57.46µs  min=46.72µs  med=56.4µs   max=1.75ms  p(90)=63.43µs  p(95)=66.82µs
+  { scenario:nothing_tiny }.....: avg=213.93µs min=152.41µs med=209.72µs max=5.23ms  p(90)=239.57µs p(95)=250.69µs
+  { scenario:detach_tiny }......: avg=212.34µs min=157.68µs med=210.85µs max=2.45ms  p(90)=235.16µs p(95)=243.06µs
 
-      { scenario:nothing_medium }...: avg=443.35µs min=314.78µs med=358.38µs max=3.53ms  p(90)=637.46µs p(95)=1.08ms
-      { scenario:detach_medium }....: avg=315.84µs min=262.79µs med=291.85µs max=1.15ms  p(90)=420.28µs p(95)=430.93µs
+  { scenario:nothing_medium }...: avg=880.99µs min=592.21µs med=719.75µs max=5.47ms  p(90)=1.1ms    p(95)=1.93ms  
+  { scenario:detach_medium }....: avg=742.03µs min=542.42µs med=662.05µs max=4.73ms  p(90)=928.36µs p(95)=1.1ms   
 
-      { scenario:nothing_large }....: avg=3.99ms   min=2.63ms   med=3.21ms   max=9.61ms  p(90)=5.94ms   p(95)=6.64ms
-      { scenario:detach_large }.....: avg=2.72ms   min=2.25ms   med=2.52ms   max=4.17ms  p(90)=3.68ms   p(95)=3.74ms
+  { scenario:nothing_large }....: avg=6.88ms   min=4.54ms   med=6.06ms   max=14.02ms p(90)=10.47ms  p(95)=11.26ms 
+  { scenario:detach_large }.....: avg=4.75ms   min=3.73ms   med=4.62ms   max=9.12ms  p(90)=5.54ms   p(95)=5.88ms  
+
+http_reqs.......................:
+  { scenario:nothing_tiny }.....: 37632  627.157251/s
+  { scenario:detach_tiny }......: 38220  636.956583/s
+
+  { scenario:nothing_medium }...: 9983   166.371993/s
+  { scenario:detach_medium }....: 11775  196.236624/s
+
+  { scenario:nothing_large }....: 1341   22.348477/s
+  { scenario:detach_large }.....: 1895   31.581181/s
 
 ```
 
@@ -250,7 +250,7 @@ http_req_duration...............:
 // keep decoder globally, headache with managing variables
 var decoder = new TextDecoder();
 Bun.serve({
-  port: 8080the ,
+  port: 8080,
   async fetch(req) {
     var body = await req.arrayBuffer();
     
@@ -277,9 +277,10 @@ Bun.serve({
   async fetch(req) {
     const body = await req.arrayBuffer();
 
+    //co-proposal, parse json without TextDecoder
     const parseResult = JSON.parseBinary(body);
-
-    //co-proposal, clear memory after parsing
+    
+    // clear body immediately
     body.detach();
     
     if(!parseResult.ok) {
@@ -295,24 +296,114 @@ Bun.serve({
 ```
 
 #### [Benchmark](./demo/http/bun.mjs)
-Results are provided by Grafana K6 load test
+Benchmark configuration is the same as of node:http above
 
-2 endpoints ("detach" and "nothing" with GC doing main work)
-
-Duration - 10 seconds for each case.
-
-Bodies
-| tiny | medium | large |
-|------|--------|-------|
-|1 byte|  1 MB  | 10 MB |
-
+In Bun ".transfer(0)" was used as polyfill, that is why the difference is very slight. Even so we get predictable memory usage and more room for concurrent requests
 ```
+http_req_duration...............: 
+  { scenario:nothing_tiny }.....: avg=184.89µs min=131.77µs med=180.6µs  max=1.51ms  p(90)=201.05µs p(95)=209.24µs
+  { scenario:detach_tiny }......: avg=184.98µs min=123.71µs med=180.74µs max=1.65ms  p(90)=200.84µs p(95)=208.96µs
+
+  { scenario:nothing_medium }...: avg=712.5µs  min=541.86µs med=647.38µs max=3.71ms  p(90)=896.61µs p(95)=1.1ms   
+  { scenario:detach_medium }....: avg=673.02µs min=502.17µs med=628.2µs  max=3.18ms  p(90)=792.96µs p(95)=900.97µs
+
+  { scenario:nothing_large }....: avg=5.33ms   min=3.97ms   med=5.16ms   max=16.43ms p(90)=6.14ms   p(95)=6.43ms  
+  { scenario:detach_large }.....: avg=5.38ms   min=3.91ms   med=5.11ms   max=14.72ms p(90)=6.3ms    p(95)=6.97ms  
+
+http_reqs.......................: 
+  { scenario:nothing_tiny }.....: 43052  717.483599/s
+  { scenario:detach_tiny }......: 43184  719.683446/s
+
+  { scenario:nothing_medium }...: 12058  200.952737/s
+  { scenario:detach_medium }....: 12859  214.301812/s
+
+  { scenario:nothing_large }....: 1695   28.248042/s
+  { scenario:detach_large }.....: 1693   28.214711/s
+
 
 ```
 
 This test cannot be properly illustrated in Bun because it doesn't support "%ArrayBufferDetach" feature of V8, so results with "transfer(0)" are not as performant as intended
 
-### uWebSockets.js — manual detach within handler
+### Deno 
+
+
+```javascript
+// keep decoder globally, headache with managing variables
+var decoder = new TextDecoder();
+Deno.serve({ port: 8080 }, async (req) => {
+    var body = await req.arrayBuffer();
+    
+    let result;
+    try {
+      result = JSON.parse(decoder.decode(body));
+    } catch (err) {
+      return new Response(err.message, { status: 400 });
+    }
+    // mark for GC
+    body = undefined;
+
+    // body sits in memory until GC decides to collect it
+    handleResult(result);
+    return new Response("ok")
+  }
+});
+```
+
+#### After
+```javascript
+Deno.serve({ port: 8080 }, async (req) => {
+    const body = await req.arrayBuffer();
+
+    //co-proposal, parse json without TextDecoder
+    const parseResult = JSON.parseBinary(body);
+    
+    // clear body immediately
+    body.detach();
+    
+    if(!parseResult.ok) {
+        return new Response(parseResult.message, { status: 400 });
+    }
+    
+    // do something with that body
+    handleResult(parseResult.value);
+
+    return new Response("ok")
+  }
+});
+```
+
+
+#### [Benchmark](./demo/http/deno.mjs)
+Benchmark configuration is the same as of node:http and Bun above
+
+Polyfill - ".transfer(0)"
+
+```
+http_req_duration...............:
+  { scenario:nothing_tiny }.....: avg=223.54µs min=163.37µs med=218.77µs max=7.02ms  p(90)=244.53µs p(95)=254.76µs
+  { scenario:detach_tiny }......: avg=215.01µs min=163.14µs med=213.66µs max=2.5ms   p(90)=235.96µs p(95)=242.58µs
+
+  { scenario:nothing_medium }...: avg=817.97µs min=518.48µs med=648.87µs max=7.51ms  p(90)=1.07ms   p(95)=1.62ms  
+  { scenario:detach_medium }....: avg=679.84µs min=504.29µs med=632.11µs max=3.09ms  p(90)=822.79µs p(95)=887.42µs
+
+  { scenario:nothing_large }....: avg=5.97ms   min=3.82ms   med=5.36ms   max=16.02ms p(90)=8.65ms   p(95)=9.67ms  
+  { scenario:detach_large }.....: avg=4.73ms   min=3.66ms   med=4.63ms   max=9.28ms  p(90)=5.52ms   p(95)=5.77ms  
+
+http_reqs.......................: 
+  { scenario:nothing_tiny }.....: 36401  606.633941/s
+  { scenario:detach_tiny }......: 37725  628.698811/s
+
+  { scenario:nothing_medium }...: 10655  177.568876/s
+  { scenario:detach_medium }....: 12755  212.566026/s
+
+  { scenario:nothing_large }....: 1512   25.197948/s
+  { scenario:detach_large }.....: 1879   31.314117/s
+
+
+```
+
+## uWebSockets.js — manual detach within handler
 
 uWS already calls `v8::ArrayBuffer::Detach` automatically after the callback
 returns. `ArrayBuffer.prototype.detach()` enables calling it **from within**
@@ -335,7 +426,7 @@ V8 API
   no detach                   ████████████████████████████   24.412 s  3.2× slower than avg detach
   ··································································
 
-V8 + node::makeCallback
+V8 + node::MakeCallback
   ──────────────────────────────────────────────────────────────────
   warmup                      █████████████░░░░░░░░░░░░░░░   10.991 s
   C++ detach via JS call      ████████████░░░░░░░░░░░░░░░░   10.156 s  7.8% faster than C++ auto-detach  ⚑

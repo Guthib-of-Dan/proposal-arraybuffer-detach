@@ -35,6 +35,6 @@ jobs:
         run: bun run gc-pressure:start
 
       - name: Compile C++
-        run: bun run cxx:fetch && bun run cxx:conf && bun run cxx:build && bun run cxx:start
+        run: bun run cxx:fetch && bun run cxx:conf && bun run cxx:build
       - name: C++ addon — detach method comparison (V8 API vs NAPI)
         run: bun run cxx:start
