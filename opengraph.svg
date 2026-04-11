@@ -1,0 +1,61 @@
+<svg width="1280" height="640" viewBox="0 0 1280 640" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <pattern id="bg-grid2" width="40" height="40" patternUnits="userSpaceOnUse">
+    <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#BA7517" stroke-width="0.5"/>
+  </pattern>
+  <style>@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&amp;family=Inter:wght@400;500;700&amp;display=swap');</style>
+</defs>
+
+<rect width="1280" height="640" fill="#0E1117"/>
+<rect width="1280" height="640" fill="url(#bg-grid2)" opacity="0.04"/>
+<rect x="0" y="0" width="6" height="640" fill="#BA7517"/>
+<rect x="0" y="0" width="1280" height="3" fill="#BA7517"/>
+<rect x="0" y="637" width="1280" height="3" fill="#BA7517"/>
+
+<rect x="60" y="50" width="180" height="30" rx="15" fill="#2A1E00" stroke="#BA7517" stroke-width="1"/>
+<text x="150" y="71" text-anchor="middle" font-family="'Inter',system-ui,sans-serif" font-size="13" font-weight="500" fill="#BA7517">TC39 · Stage 0</text>
+
+<text y="170" font-family="'JetBrains Mono','Courier New',monospace" font-size="58" font-weight="600" letter-spacing="-1">
+  <tspan x="60" fill="#FFFFFF">ArrayBuffer</tspan><tspan fill="#BA7517" font-weight="400">.prototype.</tspan><tspan fill="#EF9F27">detach</tspan><tspan fill="#BA7517" font-weight="400">()</tspan>
+</text>
+<text x="60" y="214" font-family="'Inter',system-ui,sans-serif" font-size="22" font-weight="400" fill="#6B7280">Explicit immediate backing store release</text>
+
+<rect x="60" y="248" width="660" height="1" fill="#2a1e00"/>
+
+<rect x="60" y="264" width="660" height="170" rx="10" fill="#0F0A00" stroke="#2a1e00" stroke-width="1"/>
+<text x="88" y="292" font-family="'JetBrains Mono','Courier New',monospace" font-size="14" fill="#4d3a00">// transfer(0) allocates a new zero-length buffer</text>
+<text x="88" y="313" font-family="'JetBrains Mono','Courier New',monospace" font-size="14">
+  <tspan fill="#6B7280">const empty = buf.</tspan><tspan fill="#EF9F27">transfer</tspan><tspan fill="#6B7280">(0);</tspan>
+</text>
+<text x="88" y="344" font-family="'JetBrains Mono','Courier New',monospace" font-size="14" fill="#4d3a00">// detach() releases immediately, nothing allocated</text>
+<text x="88" y="365" font-family="'JetBrains Mono','Courier New',monospace" font-size="14">
+  <tspan fill="#6B7280">buf.</tspan><tspan fill="#EF9F27">detach</tspan><tspan fill="#6B7280">();</tspan><tspan fill="#4d3a00">  // buf.byteLength === 0, backing store freed</tspan>
+</text>
+<text x="88" y="405" font-family="'JetBrains Mono','Courier New',monospace" font-size="14">
+  <tspan fill="#FAC775">JSON.parseBinary</tspan><tspan fill="#6B7280">(buf); buf.</tspan><tspan fill="#EF9F27">detach</tspan><tspan fill="#6B7280">();</tspan><tspan fill="#4d3a00">  // compose freely</tspan>
+</text>
+
+<rect x="760" y="264" width="210" height="88" rx="8" fill="#0F0A00" stroke="#2a1e00" stroke-width="1"/>
+<text x="865" y="302" text-anchor="middle" font-family="'JetBrains Mono','Courier New',monospace" font-size="34" font-weight="600" fill="#EF9F27">Less GC</text>
+<text x="865" y="326" text-anchor="middle" font-family="'Inter',system-ui,sans-serif" font-size="13" fill="#4d3a00">1335 GC events omitted</text>
+<text x="865" y="343" text-anchor="middle" font-family="'Inter',system-ui,sans-serif" font-size="12" fill="#4d3a00">benchmark · gc-pressure</text>
+
+<rect x="990" y="264" width="250" height="88" rx="8" fill="#0F0A00" stroke="#2a1e00" stroke-width="1"/>
+<text x="1115" y="302" text-anchor="middle" font-family="'JetBrains Mono','Courier New',monospace" font-size="34" font-weight="600" fill="#EF9F27">up to 30%</text>
+<text x="1115" y="326" text-anchor="middle" font-family="'Inter',system-ui,sans-serif" font-size="13" fill="#4d3a00">lower latency per HTTP request</text>
+<text x="1115" y="343" text-anchor="middle" font-family="'Inter',system-ui,sans-serif" font-size="12" fill="#4d3a00">in NodeJS load test</text>
+
+<rect x="760" y="370" width="480" height="30" rx="8" fill="#0F0A00" stroke="#2a1e00" stroke-width="1"/>
+<text x="775" y="390" font-family="'JetBrains Mono','Courier New',monospace" font-size="14">
+  <tspan fill="#6B7280">interface </tspan><tspan fill="#EF9F27">ArrayBuffer</tspan><tspan fill="#6B7280"> { </tspan><tspan fill="#FAC775">detach</tspan><tspan fill="#6B7280">(): </tspan><tspan fill="#EF9F27">void</tspan><tspan fill="#6B7280">; }</tspan>
+</text>
+
+<rect x="760" y="422" width="480" height="72" rx="8" fill="#100B00" stroke="#2a1e00" stroke-width="1"/>
+<text x="775" y="444" font-family="'Inter',system-ui,sans-serif" font-size="13" fill="#4d3a00">releases memory <tspan font-weight="500" fill="#FAC775">immediately</tspan> — no waiting for GC</text>
+<text x="775" y="462" font-family="'Inter',system-ui,sans-serif" font-size="13" fill="#4d3a00">companion to <tspan font-weight="500" fill="#FAC775">proposal-json-parse-binary</tspan></text>
+<text x="775" y="480" font-family="'Inter',system-ui,sans-serif" font-size="12" fill="#4d3a00">NodeJS · Bun · Deno · Web frontend</text>
+
+<line x1="60" y1="556" x2="1220" y2="556" stroke="#2a1e00" stroke-width="1"/>
+<text x="60" y="582" font-family="'Inter',system-ui,sans-serif" font-size="14" fill="#4d3a00">github.com/Guthib-of-Dan/<tspan font-weight="500" fill="#BA7517">proposal-arraybuffer-detach</tspan></text>
+<text x="1220" y="582" text-anchor="end" font-family="'Inter',system-ui,sans-serif" font-size="14" fill="#4d3a00">TC39 Proposal · Stage 0 · 2026</text>
+</svg>
