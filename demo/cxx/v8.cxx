@@ -97,6 +97,8 @@ namespace exports {
   void unload(args_t args) {
     autoRef.Reset();
     manualRef.Reset();
+    asyncCapableAutoRef.Reset();
+    asyncCapableManualRef.Reset();
   }
 }
 void Initialize(Local<Object> exportsObject) {

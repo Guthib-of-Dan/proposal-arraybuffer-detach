@@ -1,5 +1,5 @@
 import http from "k6/http"
-import type {Options} from "k6/options"
+import type { Options } from "k6/options"
 
 export const options: Options = {
   vus: 10,
@@ -8,25 +8,30 @@ export const options: Options = {
       duration: "10s",
       executor: "constant-vus",
       exec: "nothing_tiny"
-    }, nothing_medium: {
-      duration: "10s",
-      executor: "constant-vus",
-      exec: "nothing_medium",
-      startTime: "10s"
-    }, nothing_large: {
-      duration: "10s",
-      executor: "constant-vus",
-      exec: "nothing_large",
-      startTime: "20s"
-    }, detach_tiny: {
+    },
+    detach_tiny: {
       duration: "10s",
       executor: "constant-vus",
       exec: "detach_tiny",
-      startTime: "30s"
-    }, detach_medium: {
+      startTime: "10s"
+    },
+    nothing_medium: {
+      duration: "10s",
+      executor: "constant-vus",
+      exec: "nothing_medium",
+      startTime: "20s"
+    },
+    detach_medium: {
       duration: "10s",
       executor: "constant-vus",
       exec: "detach_medium",
+      startTime: "30s"
+    },
+
+    nothing_large: {
+      duration: "10s",
+      executor: "constant-vus",
+      exec: "nothing_large",
       startTime: "40s"
     },
     detach_large: {

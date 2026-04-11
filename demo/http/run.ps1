@@ -1,18 +1,45 @@
-$server = Start-Process node -ArgumentList "demo\http\node_http.mjs" -PassThru -NoNewWindow
+$global:container = ""
 
-Register-EngineEvent PowerShell.Exiting -Action {
-    if (!$server.HasExited) {
-        Stop-Process -Id $server.Id -Force
+function Cleanup {
+    Write-Host "Cleaning up..."
+    if ($global:container) {
+        docker stop $global:container | Out-Null
     }
-} | Out-Null
+}
 
-Start-Sleep 2
-Write-Host "test node:http"
-k6 --quiet run demo\node_http\k6.ts
-Stop-Process -Id $server.Id -Force
+# Ctrl+C handler
+$handler = {
+    param($sender, $eventArgs)
+    $eventArgs.Cancel = $true
+    Cleanup
+    exit 1
+}
+[Console]::CancelKeyPress += $handler
 
-$server = Start-Process bun -ArgumentList "demo\http\bun.mjs" -PassThru -NoNewWindow
-Write-Host "test node:http"
-Start-Sleep 2
-k6 --quiet run demo\node_http\k6.ts
-Stop-Process -Id $server.Id -Force
+function Run-Test($name, $image, $port) {
+    Write-Host "test $name"
+
+    $global:container = docker run -d `
+        --rm `
+        --memory=300m `
+        --memory-swap=300m `
+        -p ${port}:8080`
+        $image
+
+    Start-Sleep 2
+
+    k6 --quiet run demo\http\k6.ts
+
+    docker stop -t 0 $global:container | Out-Null
+    docker wait $global:container | Out-Null
+    $global:container = ""
+}
+
+try {
+    Run-Test "node:http" "bench-node" 8080
+    Run-Test "bun (equal results expected for .transfer(0))" "bench-bun" 8080
+    Run-Test "deno (equal results expected for .transfer(0))" "bench-deno" 8080
+}
+finally {
+    Cleanup
+}

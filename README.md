@@ -167,6 +167,7 @@ server.on('request', async (req, res) => {
 
   // body sits in memory until GC decides to collect it
   handleResult(result);
+  res.end("ok")
 });
 ```
 
@@ -196,10 +197,11 @@ server.on('request', async (req, res) => {
     return;
   }
   handleResult(parseResult.value);
+  res.end("ok")
 });
 ```
 
-#### [Benchmark](./demo/node_http/server.mjs)
+#### [Benchmark](./demo/http/node_http.mjs)
 Results are provided by Grafana K6 load test
 
 2 endpoints ("detach" and "nothing" with GC doing main work)
@@ -240,7 +242,75 @@ http_req_duration...............:
 
 ```
 
-This test cannot be properly illustrated in Bun because it doesn't support "%ArrayBufferDetach" feature of V8, so results with "transfer(0)" are misleading.
+### Bun
+
+#### Before
+
+```javascript
+// keep decoder globally, headache with managing variables
+var decoder = new TextDecoder();
+Bun.serve({
+  port: 8080the ,
+  async fetch(req) {
+    var body = await req.arrayBuffer();
+    
+    let result;
+    try {
+      result = JSON.parse(decoder.decode(body));
+    } catch (err) {
+      return new Response(err.message, { status: 400 });
+    }
+    // mark for GC
+    body = undefined;
+
+    // body sits in memory until GC decides to collect it
+    handleResult(result);
+    return new Response("ok")
+  }
+});
+```
+
+#### After
+```javascript
+Bun.serve({
+  port: 8080,
+  async fetch(req) {
+    const body = await req.arrayBuffer();
+
+    const parseResult = JSON.parseBinary(body);
+
+    //co-proposal, clear memory after parsing
+    body.detach();
+    
+    if(!parseResult.ok) {
+        return new Response(parseResult.message, { status: 400 });
+    }
+    
+    // do something with that body
+    handleResult(parseResult.value);
+
+    return new Response("ok")
+  }
+});
+```
+
+#### [Benchmark](./demo/http/bun.mjs)
+Results are provided by Grafana K6 load test
+
+2 endpoints ("detach" and "nothing" with GC doing main work)
+
+Duration - 10 seconds for each case.
+
+Bodies
+| tiny | medium | large |
+|------|--------|-------|
+|1 byte|  1 MB  | 10 MB |
+
+```
+
+```
+
+This test cannot be properly illustrated in Bun because it doesn't support "%ArrayBufferDetach" feature of V8, so results with "transfer(0)" are not as performant as intended
 
 ### uWebSockets.js — manual detach within handler
 
@@ -255,16 +325,33 @@ static buffer:
 > var internalDetach = new Function("buf", "%ArrayBufferDetach(buf)")
 ```
 V8 API
-  C++ detach via JS call      7.768 s   ⚑ 6.7% faster than C++ auto-detach
-  C++ detach after callback   8.324 s   post-callback, handle is cold
-  internalDetach()            7.664 s
-  no detach                  24.769 s   3.1× slower than any detach path
+  ──────────────────────────────────────────────────────────────────
+  warmup                      ██████████░░░░░░░░░░░░░░░░░░    8.435 s
+  C++ detach via JS call      ████████░░░░░░░░░░░░░░░░░░░░    7.376 s  8.2% faster than C++ auto-detach  ⚑
+  C++ detach after callback   █████████░░░░░░░░░░░░░░░░░░░    8.033 s  C++ post-callback detach
+  internalDetach()            ████████░░░░░░░░░░░░░░░░░░░░    7.332 s
+  C++ detach after cb (2nd)   █████████░░░░░░░░░░░░░░░░░░░    8.097 s  C++ post-callback detach
+  internalDetach() (2nd)      ████████░░░░░░░░░░░░░░░░░░░░    7.190 s
+  no detach                   ████████████████████████████   24.412 s  3.2× slower than avg detach
+  ··································································
+
+V8 + node::makeCallback
+  ──────────────────────────────────────────────────────────────────
+  warmup                      █████████████░░░░░░░░░░░░░░░   10.991 s
+  C++ detach via JS call      ████████████░░░░░░░░░░░░░░░░   10.156 s  7.8% faster than C++ auto-detach  ⚑
+  C++ detach after callback   █████████████░░░░░░░░░░░░░░░   11.013 s  C++ post-callback detach
+  internalDetach()            ████████████░░░░░░░░░░░░░░░░   10.298 s
+  C++ detach after cb (2nd)   █████████████░░░░░░░░░░░░░░░   10.922 s  C++ post-callback detach
+  internalDetach() (2nd)      ████████████░░░░░░░░░░░░░░░░   10.176 s
+  no detach                   ████████████████████████████   24.412 s  2.3× slower than avg detach
+  ··································································
 
 NAPI
-  internalDetach()           11.033 s
-  C++ detach via JS call     11.113 s
-  C++ detach after callback  11.671 s
-  no detach                  47.804 s   4.2× slower than any detach path
+  ──────────────────────────────────────────────────────────────────
+  internalDetach              ██████░░░░░░░░░░░░░░░░░░░░░░   10.753 s
+  C++ detach via JS call      ██████░░░░░░░░░░░░░░░░░░░░░░   11.048 s
+  C++ detach after cb         ███████░░░░░░░░░░░░░░░░░░░░░   11.549 s
+  no detach                   ████████████████████████████   47.852 s  4.3× slower than avg detach
 ```
 
 ⚑ JS-call detach outpaces C++ auto-detach because the buffer handle is still
@@ -283,7 +370,7 @@ their technologies and improve performance without exposing
 raw behaviour to developers.
 
 But manual management can still be exposed and used.
-At least I will be the one who uses it - benchmarks prove its benefit.
+At least I will be one of those who use it - benchmarks prove its benefit.
 
 ## Comparison
 

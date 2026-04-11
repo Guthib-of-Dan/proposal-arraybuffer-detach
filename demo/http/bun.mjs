@@ -6,7 +6,7 @@ ArrayBuffer.prototype.detach = function(){this.transfer(0)}
 Bun.serve({
   port: 8080,
   async fetch(req) {
-    switch (req.url) {
+    switch (new URL(req.url).pathname) {
       case "/detach": {
         const buf = await req.arrayBuffer();
         buf.detach();

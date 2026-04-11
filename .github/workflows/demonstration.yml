@@ -8,7 +8,7 @@ jobs:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
         with:
-          node-version: '25.0.0'
+          node-version: '24.0.0'
       - uses: oven-sh/setup-bun@v2
       - name: Setup C++ toolchain
         uses: aminya/setup-cpp@v1
@@ -28,7 +28,7 @@ jobs:
         run: bun run detach-vs-transfer
       - name: GC pressure under memory-constrained environment
         run: bun run gc-pressure:start
-      - name: node:http server load test comparison and Bun as well
-        run: chmod +x ./demo/http/run.sh && bun run node:http
+      - name: node:http + bun + deno load test
+        run: chmod +x ./demo/http/run.sh && bun run http:build && bun run http:start
       - name: C++ addon — detach method comparison (V8 API vs NAPI)
         run: bun run cxx:start

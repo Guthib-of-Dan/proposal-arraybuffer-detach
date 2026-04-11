@@ -2,16 +2,24 @@
   "type": "module",
   "scripts": {
     "detach-vs-transfer": "node demo/detach-vs-transfer.mjs 10mil",
+
     "gc-pressure:build": "docker build -f demo/gc-pressure/Dockerfile . -t gc-pressure",
     "gc-pressure:start": "docker run --memory=300m --memory-swap=300m --rm gc-pressure",
-    "node:http": "sh ./demo/http/run.sh",
-    "node:http:win32": "powershell -File ./demo/http/run.ps1",
+
+    "http:start": "sh ./demo/http/run.sh",
+    "http:start:win32": "powershell -File ./demo/http/run.ps1",
+    "http:build": "bun run http:build:node && http:build:bun && bun run http:build:deno",
+    "http:build:node": "docker build --target node -t bench-node -f demo/http/Dockerfile .",
+    "http:build:bun": " && docker build --target bun -f demo/http/Dockerfile  -t bench-bun .", 
+    "http:build:deno": "docker build -f demo/http/Dockerfile --target deno -t bench-deno .",
+
     "cxx:fetch": "node-gyp install && node demo/cxx/setup-cmake.mjs",
     "cxx:conf": "cmake -B demo/cxx/build -G Ninja -DCMAKE_BUILD_TYPE=Release",
     "cxx:build": "cmake --build demo/cxx/build",
     "cxx:start": "node demo/cxx/compare.mjs",
-    "demo:build": "bun run gc-pressure:build && bun run cxx:build",
-    "demo:start": "bun run detach-vs-transfer && bun run gc-pressure:start && bun run node:http && bun run cxx:start",
+
+    "demo:build": "bun run gc-pressure:build && bun run cxx:build && bun run http:build",
+    "demo:start": "bun run detach-vs-transfer && bun run gc-pressure:start && bun run node:http && bun run cxx:start && bun run http:start",
     "start": "npm run build-loose -- --watch",
     "build": "npm run build-loose -- --strict",
     "build-loose": "node -e 'fs.mkdirSync(\"build\", { recursive: true })' && ecmarkup --load-biblio @tc39/ecma262-biblio --verbose spec.emu build/index.html --lint-spec"

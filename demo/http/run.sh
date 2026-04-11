@@ -1,16 +1,41 @@
 #!/usr/bin/env bash
-node demo/http/node_http.mjs &
-SERVER_PID=$!
+set -euo pipefail
 
-trap "kill $SERVER_PID 2>/dev/null || true" EXIT INT TERM
+CONTAINER_ID=""
 
-sleep 1
-echo "test node:http"
-k6 --quiet run demo/http/k6.ts
-kill $SERVER_PID 2>/dev/null || true
-echo "test bun (equal results expected for .transfer(0))"
-bun demo/http/bun.mjs &
-SERVER_PID=$!
-sleep 1
-k6 --quiet run demo/http/k6.ts
-kill $SERVER_PID 2>/dev/null || true
+cleanup() {
+  echo "Cleaning up..."
+  if [[ -n "$CONTAINER_ID" ]]; then
+    docker stop "$CONTAINER_ID" >/dev/null 2>&1 || true
+  fi
+}
+
+trap cleanup INT TERM EXIT
+
+run_test() {
+  local name=$1
+  local image=$2
+  local port=$3
+
+  echo "test $name"
+
+  CONTAINER_ID=$(docker run -d \
+    --rm \
+    --memory=300m \
+    --memory-swap=300m \
+    -p ${port}:8080\
+    "$image")
+
+  # wait for server to be ready (better than sleep if you want later)
+  sleep 2
+
+  k6 --quiet run demo/http/k6.ts
+
+  docker stop -t 0 $CONTAINER_ID >/dev/null
+  docker wait $CONTAINER_ID 2>/dev/null || true
+  CONTAINER_ID=""
+}
+
+run_test "node:http" "bench-node" 8080 
+run_test "bun (equal results expected for .transfer(0))" "bench-bun" 8080
+run_test "deno (equal results expected for .transfer(0))" "bench-deno" 8080

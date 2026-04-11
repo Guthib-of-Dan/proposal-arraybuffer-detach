@@ -1,4 +1,4 @@
-FROM node:25.0.0-alpine
+FROM node:24-slim
 WORKDIR /test
 COPY demo/gc-pressure/index.mjs demo/helpers.mjs /test/
 ENV variant=all
