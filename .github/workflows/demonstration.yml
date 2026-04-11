@@ -20,15 +20,21 @@ jobs:
       - uses: grafana/setup-k6-action@v1
       - name: Install JS dependencies
         run: bun install
-      - name: Compile C++
-        run: bun run cxx:fetch && bun run cxx:conf && bun run cxx:build
-      - name: Build gc-pressure Docker image
-        run: bun run gc-pressure:build
+
+      - name: build HTTP test with Docker
+        run: chmod +x ./demo/http/run.sh && bun run http:build
+      - name: run HTTP test - NodeJS + Bun + Deno in constrained environment 
+        run: bun run http:start
+
       - name: NodeJS's %ArrayBufferDetach vs .transfer(0)
         run: bun run detach-vs-transfer
+
+      - name: Build gc-pressure Docker image
+        run: bun run gc-pressure:build
       - name: GC pressure under memory-constrained environment
         run: bun run gc-pressure:start
-      - name: node:http + bun + deno load test
-        run: chmod +x ./demo/http/run.sh && bun run http:build && bun run http:start
+
+      - name: Compile C++
+        run: bun run cxx:fetch && bun run cxx:conf && bun run cxx:build && bun run cxx:start
       - name: C++ addon — detach method comparison (V8 API vs NAPI)
         run: bun run cxx:start

@@ -8,7 +8,7 @@
 
     "http:start": "sh ./demo/http/run.sh",
     "http:start:win32": "powershell -File ./demo/http/run.ps1",
-    "http:build": "bun run http:build:node && http:build:bun && bun run http:build:deno",
+    "http:build": "bun run http:build:node && bun run http:build:bun && bun run http:build:deno",
     "http:build:node": "docker build --target node -t bench-node -f demo/http/Dockerfile .",
     "http:build:bun": " && docker build --target bun -f demo/http/Dockerfile  -t bench-bun .", 
     "http:build:deno": "docker build -f demo/http/Dockerfile --target deno -t bench-deno .",
