@@ -473,7 +473,7 @@ At least I will be one of those who use it - benchmarks prove its benefit.
 | GC event triggered | IncrementalMarking | Scavenge |
 | Symmetric with `napi_detach_arraybuffer` or `v8::ArrayBuffer::Detach` | — | ✔ |
 
-## Relation to other proposals
+## Relation to other proposals / discussions / implementations
 
 - [proposal-json-parse-binary](https://github.com/Guthib-of-Dan/proposal-json-parse-binary) —
   eliminates the intermediate string cost; `.detach()` eliminates the residual
@@ -482,6 +482,18 @@ At least I will be one of those who use it - benchmarks prove its benefit.
   (Stage 4) — a future extension could implement `Symbol.dispose` on
   `ArrayBuffer` to enable `using buf = getBuffer()`, automatically detaching
   when the block exits. Kept out of this initial proposal.
+- [TC39 Immutable ArrayBuffers](https://tc39.es/proposal-immutable-arraybuffer/#sec-detacharraybuffer)
+  (Stage 2.7) - in this proposal intrinsic handler for detaching buffers is already described,
+  just not exposed. `DetachArrayBuffer ( arrayBuffer [ , key ] )` is an internal functionality,
+  while `ArrayBuffer.prototype.detach` is its exposed caller.
+- [ArrayBuffer.prototype.transfer and friends](https://github.com/tc39/proposal-arraybuffer-transfer)
+  (Stage 4) - cross-platform polyfill for this proposal, but its purpose is different, so
+  this proposal exists for the sake of removing additional, unnecessary for this use-case, work.
+  Some of the following links are taken from this proposal, because are still relevant
+- [Comment inside NodeJS's codebase](https://github.com/nodejs/node/blob/main/lib/querystring.js#L472)
+  tells that try-catch blocks are not optimised up to V8 5.4 and still are not inlined, hurting performance.
+- [V8 `v8::ArrayBuffer::Detach`](https://v8docs.nodesource.com/node-18.2/d5/d6e/classv8_1_1_array_buffer.html#abb7a2b60240651d16e17d02eb6f636cf)
+- [JavaScriptCore ArrayBuffer::detach](https://github.com/WebKit/WebKit/blob/main/Source/JavaScriptCore/runtime/ArrayBuffer.cpp#L468)
 
 ## Q&A
 
